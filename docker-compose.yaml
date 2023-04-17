@@ -1,0 +1,67 @@
+version: "2"
+services:
+  web:
+    container_name: todo
+    build: .
+    command: sh -c "/wait && npm run build && npx sequelize-cli db:migrate && npm run dev"
+    volumes:
+      - .:/usr/app/
+    ports:
+      - "8090:8090"
+    links:
+      - postgres
+      - redis
+      - postgres_test
+    depends_on:
+      - postgres
+      - redis
+      - postgres_test
+    restart: on-failure
+    environment:
+      REDIS_URL: "${REDIS_URL}"
+      DB_URL: "${DB_URL}"
+      DB_NAME: "${DB_NAME}"
+      DB_HOST: "${DB_HOST}"
+      DB_PORT: "${DB_PORT}"
+      DB_USERNAME: "${DB_USERNAME}"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      DB_TEST_HOST: "${DB_TEST_HOST}"
+      WAIT_HOSTS: postgres:5432
+  postgres:
+    container_name: todo_postgres
+    image: postgres
+    restart: always
+    hostname: postgres
+    environment:
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: "${DB_NAME}"
+    volumes:
+      - ./data/local:/var/lib/postgresql/data
+    ports:
+      - "5449:5432"
+  postgres_test:
+    container_name: todo_postgres_test
+    image: postgres
+    restart: always
+    hostname: postgres
+    environment:
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: "${DB_NAME}"
+    volumes:
+      - ./data/test:/var/lib/postgresql/data
+    ports:
+      - "5450:5432"
+  redis:
+    image: redis
+    restart: always
+    container_name: todo_redis
+    hostname: redis
+    expose:
+      - 6379
+    ports:
+      - "6369:6379"
